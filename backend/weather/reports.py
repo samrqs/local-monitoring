@@ -28,9 +28,11 @@ def generate_weather_report(data: dict):
     timestamp_display = now_local.strftime("%d/%m/%Y %H:%M")
     timestamp_filename = now_local.strftime("%Y%m%d_%H%M%S")
 
-    safe_city = city.replace(" ", "_")
+    safe_city = data["city"].replace(" ", "_")
+    city_dir = os.path.join(settings.DATA_DIR, safe_city)
+    os.makedirs(city_dir, exist_ok=True)
     filename = f"{safe_city}_{timestamp_filename}.pdf"
-    filepath = os.path.join(settings.DATA_DIR, filename)
+    filepath = os.path.join(city_dir, filename)
     os.makedirs(settings.DATA_DIR, exist_ok=True)
 
     doc = SimpleDocTemplate(filepath, pagesize=A4)

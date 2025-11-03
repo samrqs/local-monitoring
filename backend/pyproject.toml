@@ -14,6 +14,7 @@ python-dotenv = "^1.2.1"
 djangorestframework = "^3.16.1"
 matplotlib = "^3.10.7"
 pytz = "^2025.2"
+psycopg2-binary = "^2.9.11"
 
 
 [build-system]
