@@ -1,0 +1,28 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "eco_sight",
+            "cwd": "eco_sight",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "eco_sight (profile mode)",
+            "cwd": "eco_sight",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "eco_sight (release mode)",
+            "cwd": "eco_sight",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        }
+    ]
+}
