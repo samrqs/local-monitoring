@@ -1,54 +1,72 @@
-import 'package:eco_sight/screens/providers/clima_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-
+import 'package:geolocator/geolocator.dart';
 
 import 'screens/dashboard_screen.dart';
 import 'screens/clima_screen.dart';
 import 'screens/mapa_screen.dart';
+import 'screens/providers/clima_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Carrega o .env (não falha se faltar, mas loga)
+
+  // Carregar .env
   try {
     await dotenv.load(fileName: ".env");
-  } catch (_) {}
+  } catch (_) {
+    debugPrint("⚠ .env não encontrado, seguindo sem ele");
+  }
+
+  // Tentar obter localização antes de rodar app
+  Position? pos;
+  try {
+    pos = await Geolocator.getCurrentPosition();
+  } catch (e) {
+    debugPrint("⚠ Falha ao obter localização inicial: $e");
+  }
 
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider<ClimaProvider>(create: (_) => ClimaProvider()),
+        ChangeNotifierProvider(
+          create: (_) => ClimaProvider()
+            ..carregarClima(
+              pos?.latitude ?? -23.5505,   // fallback São Paulo
+              pos?.longitude ?? -46.6333,
+            ),
+        ),
       ],
-      child: const EcoWatchApp(),
+      child: const EcoSightApp(),
     ),
   );
 }
 
-class EcoWatchApp extends StatefulWidget {
-  const EcoWatchApp({super.key});
+class EcoSightApp extends StatefulWidget {
+  const EcoSightApp({super.key});
 
   @override
-  State<EcoWatchApp> createState() => _EcoWatchAppState();
+  State<EcoSightApp> createState() => _EcoSightAppState();
 }
 
-class _EcoWatchAppState extends State<EcoWatchApp> {
+class _EcoSightAppState extends State<EcoSightApp> {
   int _index = 0;
 
-  // REMOVA const nas telas que dependem de Provider para evitar caching agressivo
   final List<Widget> _screens = [
-    const DashboardScreen(),
-    const ClimaScreen(),
-    const MapaScreen(),
+    DashboardScreen(),
+    ClimaScreen(),
+    MapaScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: "EcoWatch",
+      title: "EcoSight",
       theme: ThemeData(
         useMaterial3: true,
+        textTheme: GoogleFonts.poppinsTextTheme(),
         colorSchemeSeed: const Color(0xFF168600),
       ),
       home: Scaffold(
