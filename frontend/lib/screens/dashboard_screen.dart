@@ -59,7 +59,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           children: [
                             Expanded(child: _cardMetric("Qualidade do Ar (AQI)", _aqiText(q?.aqi), Icons.air, _aqiColor(q?.aqi))),
                             const SizedBox(width: 12),
-                            Expanded(child: _cardMetric("PM2.5", "${q?.pm2_5.toStringAsFixed(1) ?? '—'} µg/m³", Icons.blur_on, Colors.deepPurple)),
+                            Expanded(child: _cardMetric("Partículas Finas - PM2.5", "${q?.pm2_5.toStringAsFixed(1) ?? '—'} µg/m³", Icons.blur_on, Colors.deepPurple)),
                           ],
                         ),
 
@@ -67,14 +67,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                         Row(
                           children: [
-                            Expanded(child: _cardMetric("PM10", "${q?.pm10.toStringAsFixed(1) ?? '—'} µg/m³", Icons.blur_circular, Colors.teal)),
+                            Expanded(child: _cardMetric("Poeira - PM10", "${q?.pm10.toStringAsFixed(1) ?? '—'} µg/m³", Icons.blur_circular, Colors.teal)),
                             const SizedBox(width: 12),
-                            Expanded(child: _cardMetric("O₃", "${q?.o3.toStringAsFixed(1) ?? '—'} µg/m³", Icons.cloud, Colors.indigo)),
+                            Expanded(child: _cardMetric("Ozônio (poluente)", "${q?.o3.toStringAsFixed(1) ?? '—'} µg/m³", Icons.cloud, Colors.indigo)),
                           ],
                         ),
 
+                        const SizedBox(height: 16),
+                        _buildGuiaQualidadeAr(),
+
                         const SizedBox(height: 20),
-                        _cardChart("PM2.5 últimas 24h", p.historicoPm25),
+                        _cardChart("PM2.5 (pó invisível) últimas 24h", p.historicoPm25),
+
                       ],
                     ),
                   ),
@@ -246,6 +250,77 @@ Widget _refreshButton(ClimaProvider p) {
           Text(historico.isEmpty ? "Sem dados de PM2.5 nas últimas 24h"
                                  : "Pontos: ${historico.length} • unidade: µg/m³",
               style: GoogleFonts.poppins(fontSize: 12, color: Colors.black54)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGuiaQualidadeAr() {
+  return Container(
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: Colors.black12),
+      boxShadow: const [
+        BoxShadow(
+          color: Colors.black12,
+          blurRadius: 6,
+          offset: Offset(2, 4),
+        )
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: const [
+            Icon(Icons.info_outline, color: Colors.blue, size: 20),
+            SizedBox(width: 8),
+            Text(
+              "Guia de Qualidade do Ar (OMS)",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        _linhaPoluente("PM2.5", "< 15 µg/m³", "Ideal para saúde",Colors.deepPurple),
+        _linhaPoluente("PM10", "< 45 µg/m³", "Limite recomendado",Colors.teal),
+        _linhaPoluente("Ozônio (O₃)", "< 100 µg/m³", "Acima disso irrita pulmões",Colors.indigo),
+      ],
+    ),
+  );
+}
+
+  Widget _linhaPoluente(String nome, String valor, String nota, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              nome,
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                color: color, // título colorido
+              ),
+            ),
+          ),
+          Text(
+            valor,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: color, // valor colorido
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            "• $nota",
+            style: TextStyle(
+              fontSize: 12,
+              color: color.withOpacity(0.8), // texto auxiliar ligeiramente mais claro
+            ),
+          ),
         ],
       ),
     );
