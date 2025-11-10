@@ -1,15 +1,15 @@
 import os
 import json
 import pytz
+import requests
 
-from datetime import datetime
-
-from django.http import JsonResponse
+from django.urls import reverse
+from django.http import JsonResponse,FileResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 
 from .models import WeatherReport
-from .services import get_weather_data
+from .services import get_weather_data, get_air_pollution_data
 from .reports import generate_weather_report
 
 
@@ -28,6 +28,8 @@ def weather_report(request):
             return JsonResponse({"error": "Campos 'lat' e 'lon' são obrigatórios."}, status=400)
 
         data = get_weather_data(float(lat), float(lon))
+        pollution = get_air_pollution_data(lat, lon)
+        data["pollution"] = pollution
         report_path = generate_weather_report(data)
         report_url = f"/data/reports/{os.path.basename(report_path)}"
 
@@ -49,11 +51,30 @@ def weather_report(request):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
-    
+
+@csrf_exempt
+def get_pollution(request):
+
+    if request.method != "POST":
+        return JsonResponse({"error": "Use POST"}, status=405)
+
+    body = json.loads(request.body)
+    lat = body.get("lat")
+    lon = body.get("lon")
+
+    if lat is None or lon is None:
+        return JsonResponse({"error": "Campos 'lat' e 'lon' são obrigatórios."}, status=400)
+
+    pollution = get_air_pollution_data(lat, lon)
+    if pollution is None:
+        return JsonResponse({"error": "Não foi possível obter dados"}, status=500)
+
+    return JsonResponse(pollution)
+
 @csrf_exempt
 def list_reports(request, city):
     """
-    Retorna todos os PDFs gerados para uma cidade.
+    Retorna todos os PDFs gerados para uma cidade, com link para download.
     """
     if request.method != "GET":
         return JsonResponse({"error": "Método não permitido. Use GET."}, status=405)
@@ -61,12 +82,75 @@ def list_reports(request, city):
     reports = WeatherReport.objects.filter(city__iexact=city).order_by("-generated_at")
     tz = pytz.timezone("America/Sao_Paulo")
 
-    data = [
-        {
-            "file": r.file_path,
-            "generated_at": r.generated_at.astimezone(tz).strftime("%d/%m/%Y %H:%M")
-        }
-        for r in reports
-    ]
+    data = []
+    for r in reports:
+
+        download_path = reverse("download_report", args=[r.id])
+        full_url = request.build_absolute_uri(download_path)
+
+        data.append({
+            "id": r.id,
+            "city": r.city,
+            "generated_at": r.generated_at.astimezone(tz).strftime("%d/%m/%Y %H:%M"),
+            "download_url": full_url
+        })
 
     return JsonResponse(data, safe=False)
+
+@csrf_exempt
+def pollution_history(request):
+    if request.method != "GET":
+        return JsonResponse({"error": "Método não permitido. Use GET."}, status=405)
+
+    lat = request.GET.get("lat")
+    lon = request.GET.get("lon")
+    start = request.GET.get("start")
+    end = request.GET.get("end")
+
+    if not lat or not lon or not start or not end:
+        return JsonResponse({"error": "Parâmetros obrigatórios: lat, lon, start, end"}, status=400)
+
+    url = (
+        f"https://api.openweathermap.org/data/2.5/air_pollution/history"
+        f"?lat={lat}&lon={lon}&start={start}&end={end}&appid={settings.OPENWEATHER_API_KEY}"
+    )
+
+    response = requests.get(url, timeout=10)
+
+    if response.status_code != 200:
+        return JsonResponse({"error": "Erro ao consultar API externa", "details": response.text}, status=500)
+
+    data = response.json()
+
+    formatted = []
+    for item in data.get("list", []):
+        c = item.get("components", {})
+        formatted.append({
+            "timestamp": item.get("dt"),
+            "aqi": item.get("main", {}).get("aqi", 0),
+            "pm2_5": c.get("pm2_5", 0),
+            "pm10": c.get("pm10", 0),
+            "o3": c.get("o3", 0),
+            "no2": c.get("no2", 0),
+            "so2": c.get("so2", 0),
+            "co": c.get("co", 0),
+        })
+
+    return JsonResponse({"data": formatted}, safe=False)
+
+@csrf_exempt
+def download_report(request, report_id):
+    try:
+        report = WeatherReport.objects.get(id=report_id)
+    except WeatherReport.DoesNotExist:
+        return JsonResponse({"error": "Relatório não encontrado."}, status=404)
+
+    filepath = report.file_path
+
+    if not os.path.isfile(filepath):
+        return JsonResponse({"error": "Arquivo não encontrado no servidor."}, status=404)
+
+    filename = os.path.basename(filepath)
+    response = FileResponse(open(filepath, "rb"), content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response

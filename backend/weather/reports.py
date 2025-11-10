@@ -84,6 +84,19 @@ def generate_weather_report(data: dict):
         ["Longitude", f"{data['longitude']:.3f}"],
     ]
 
+    poll = data.get("pollution")
+
+    if poll:
+        table_data.extend([
+            ["Qualidade do Ar (AQI)", poll["aqi"]],
+            ["PM2.5 (µg/m³)", poll["pm2_5"]],
+            ["PM10 (µg/m³)", poll["pm10"]],
+            ["Ozônio (µg/m³)", poll["o3"]],
+            ["Dióxido de Nitrogênio (µg/m³)", poll["no2"]],
+            ["Dióxido de Enxofre (µg/m³)", poll["so2"]],
+            ["Monóxido de Carbono (µg/m³)", poll["co"]],
+        ])
+
     table = Table(table_data, colWidths=[8*cm, 8*cm])
     table.setStyle(TableStyle([
         ("BACKGROUND", (0,0), (-1,0), colors.HexColor("#004E98")),
