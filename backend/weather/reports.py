@@ -74,10 +74,12 @@ def generate_weather_report(data: dict):
     table_data = [
         ["Temperatura (°C)", f"{data['temperature']:.1f}"],
         ["Umidade (%)", f"{data['humidity']}"],
+        ["Sensação (°C)", f"{data['feels_like']}"],
         ["Pressão (hPa)", f"{data['pressure']}"],
         ["Velocidade do Vento (m/s)", f"{data['wind_speed']}"],
-        ["Condição Climática", data["weather"]],
-        ["Qualidade do Ar (estimada)", data["air_quality_index"]],
+        ["Descrição", f"{data['description']}"],
+        ["Nascer do Sol", f"{data['sunrise']}"],
+        ["Por do Sol", f"{data['sunset']}"],
         ["Latitude", f"{data['latitude']:.3f}"],
         ["Longitude", f"{data['longitude']:.3f}"],
     ]
