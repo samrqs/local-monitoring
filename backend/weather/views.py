@@ -9,7 +9,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 
 from .models import WeatherReport
-from .services import get_weather_data, get_air_pollution_data
+from .services import get_weather_data, get_air_pollution_data, get_air_pollution_history_data
 from .reports import generate_weather_report
 
 
@@ -54,22 +54,35 @@ def weather_report(request):
 
 @csrf_exempt
 def get_pollution(request):
-
+    """
+    Se receber apenas lat/lon → poluição atual
+    Se receber start e end → histórico de poluição
+    """
     if request.method != "POST":
         return JsonResponse({"error": "Use POST"}, status=405)
 
     body = json.loads(request.body)
+
     lat = body.get("lat")
     lon = body.get("lon")
+    start = body.get("start")  # timestamp UNIX (segundos)
+    end = body.get("end")      # timestamp UNIX (segundos)
 
     if lat is None or lon is None:
         return JsonResponse({"error": "Campos 'lat' e 'lon' são obrigatórios."}, status=400)
 
-    pollution = get_air_pollution_data(lat, lon)
-    if pollution is None:
-        return JsonResponse({"error": "Não foi possível obter dados"}, status=500)
+    if start and end:
+        data = get_air_pollution_history_data(lat, lon, start, end)
+        if data is None:
+            return JsonResponse({"error": "Não foi possível obter histórico."}, status=500)
 
-    return JsonResponse(pollution)
+        return JsonResponse({"type": "history", "data": data}, safe=False)
+
+    data = get_air_pollution_data(lat, lon)
+    if data is None:
+        return JsonResponse({"error": "Não foi possível obter dados atuais."}, status=500)
+
+    return JsonResponse({"type": "current", "data": data}, safe=False)
 
 @csrf_exempt
 def list_reports(request, city):
