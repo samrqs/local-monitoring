@@ -60,8 +60,8 @@ class _MapaScreenState extends State<MapaScreen> {
                 mainAxisSize: MainAxisSize.min, // mantém centralizado
                 children: [
                   const Icon(
-                    Icons.map_outlined, // ícone de clima
-                    color: Color.fromARGB(255, 22, 134, 0),     // cor do sol ☀️
+                    Icons.map_outlined, // ícone do mapa
+                    color: Color.fromARGB(255, 56, 142, 60),
                     size: 32,
                   ),
                   const SizedBox(width: 6),

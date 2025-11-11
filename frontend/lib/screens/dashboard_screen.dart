@@ -186,13 +186,18 @@ Widget _refreshButton(ClimaProvider p) {
 
   // === RESTO DO SEU CÓDIGO MANTIDO IGUAL ===
 
-  Widget _emptyState() => Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const SizedBox(height: 60),
-          const Text("Nenhum dado carregado.\nAbra a aba Clima para detectar localização.", textAlign: TextAlign.center),
-        ],
-      );
+  Widget _emptyState() => Center(
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: const [
+        SizedBox(height: 60),
+        Text(
+          "Nenhum dado carregado.",
+          textAlign: TextAlign.center,
+        ),
+      ],
+    ),
+  );
 
   Widget _loadingSkeleton() => Shimmer.fromColors(
         baseColor: Colors.grey.shade300,

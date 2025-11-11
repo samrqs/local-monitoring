@@ -1,6 +1,11 @@
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously
+
+import 'dart:convert';
+
 import 'package:eco_sight/screens/providers/clima_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:weather_icons/weather_icons.dart';
 import '../../data/services/location_service.dart';
@@ -51,7 +56,7 @@ class _ClimaScreenState extends State<ClimaScreen> {
                 children: [
                   const Icon(
                     Icons.cloud_outlined, // ícone de clima
-                    color: Color.fromARGB(255, 22, 134, 0),
+                    color: Color.fromARGB(255, 56, 142, 60),
                     size: 32,
                   ),
                   const SizedBox(width: 6),
@@ -81,8 +86,25 @@ class _ClimaScreenState extends State<ClimaScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(p.nomeCidade ?? "Localizando...",
-              style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold)),
+          Row(
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    const Icon(Icons.location_on, color: Colors.red),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        p.nomeCidade ?? "Detectando localização...",
+                        style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 8),
           BoxedIcon(_mapWeatherIcon(c.icone), size: 80, color: Colors.blueGrey.shade700),
           const SizedBox(height: 12),
@@ -97,6 +119,8 @@ class _ClimaScreenState extends State<ClimaScreen> {
           _infoRow("Umidade", "${c.umidade}%", WeatherIcons.humidity),
           const SizedBox(height: 20),
           _sunTimes(c.nascerSol, c.porSol),
+          _buildRelatorioDivider(),
+          _relatorioCard(p)
         ],
       ),
     );
@@ -134,6 +158,119 @@ class _ClimaScreenState extends State<ClimaScreen> {
       ],
     );
   }
+
+    Widget _relatorioCard(ClimaProvider p) {
+    return Container(
+      margin: const EdgeInsets.only(top: 20, bottom: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(2, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.description, color: Color.fromARGB(255, 56, 142, 60), size: 28),
+              const SizedBox(width: 8),
+              Text(
+                "Relatório Meteorológico",
+                style: GoogleFonts.poppins(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            "Baixe um relatório com as informações atuais do tempo, incluindo temperatura, umidade, pressão, vento e históricos.",
+            style: GoogleFonts.poppins(fontSize: 13, color: Colors.black87),
+          ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color.fromARGB(255, 56, 142, 60),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              ),
+              onPressed: () async {
+                await _baixarRelatorio(p);
+              },
+              icon: const Icon(Icons.download, color: Colors.white),
+              label: const Text(
+                "Baixar Relatório",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRelatorioDivider() => const Padding(
+  padding: EdgeInsets.symmetric(vertical: 8.0),
+  child: Divider(thickness: 1.2),
+);
+
+
+  Future<void> _baixarRelatorio(ClimaProvider p) async {
+  try {
+    final clima = p.clima;
+    if (clima == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Não há dados meteorológicos para exportar.")),
+      );
+      return;
+    }
+
+    final body = {
+      "local": p.nomeCidade ?? "Desconhecido",
+      "temperatura": clima.temperatura,
+      "umidade": clima.umidade,
+      "pressao": clima.pressao,
+      "vento": clima.vento,
+      "descricao": clima.descricao,
+      "dataHora": DateTime.now().toIso8601String(),
+    };
+
+    // 🔹 Substitua pela URL da sua API real
+    final url = Uri.parse("https://suaapi.com/api/relatorios/tempo");
+
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode == 200) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("✅ Relatório enviado com sucesso!")),
+      );
+    } else {
+      throw Exception("Erro ${response.statusCode}");
+    }
+  } catch (e) {
+    debugPrint("Erro ao enviar relatório: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("❌ Falha ao enviar relatório: $e")),
+    );
+  }
+}
+
 
   IconData _mapWeatherIcon(String code) {
     switch (code) {
