@@ -50,4 +50,37 @@ class ApiService {
     }).toList()
       ..sort((a,b) => a.t.compareTo(b.t));
   }
+
+  static Future<Map<String, double>> getPrecipitacaoProximas24h(double lat, double lon) async {
+  final url = Uri.parse(
+    '$baseUrl/forecast?lat=$lat&lon=$lon&appid=$apiKey&units=$units&lang=$lang',
+  );
+  final r = await http.get(url);
+  if (r.statusCode != 200) throw Exception('Erro forecast: ${r.statusCode}');
+  final data = jsonDecode(r.body);
+
+  final list = (data['list'] as List?) ?? [];
+  double totalChuva = 0;
+  double totalUmid = 0;
+  double totalPress = 0;
+  double totalNuvem = 0;
+
+  int count = 0;
+  for (var i = 0; i < list.length && i < 8; i++) {
+    final e = list[i];
+    totalChuva += (e['rain']?['3h'] ?? 0).toDouble();
+    totalUmid += (e['main']?['humidity'] ?? 0).toDouble();
+    totalPress += (e['main']?['pressure'] ?? 0).toDouble();
+    totalNuvem += (e['clouds']?['all'] ?? 0).toDouble();
+    count++;
+  }
+  
+  return {
+    'chuva': totalChuva,
+    'umid': count > 0 ? totalUmid / count : 0,
+    'press': count > 0 ? totalPress / count : 0,
+    'nuvem': count > 0 ? totalNuvem / count : 0,
+  };
+}
+
 }

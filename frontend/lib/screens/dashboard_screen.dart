@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:eco_sight/screens/providers/clima_provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -24,9 +26,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final q = p.poluicao;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text("EcoSight", style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
-        centerTitle: true,
+        appBar: AppBar(
+        title: Row(
+          mainAxisSize: MainAxisSize.min, // centraliza o conteúdo do Row
+          children: [
+            ClipOval(
+              child: Image.asset(
+                'assets/logo.png',
+                height: 46,
+                width: 46,
+                fit: BoxFit.cover,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Eco Sight',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
+          ],
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -73,6 +94,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ],
                         ),
 
+                        const SizedBox(height: 12),
+
+                        if (p.riscoAlagamento != null)
+                        Row(
+                          children: [
+                            Expanded(child: _cardMetric(
+                          "Risco de Alagamento",
+                          "${_textoRisco(p.riscoAlagamento!)} (${p.riscoAlagamento!.toStringAsFixed(0)}%)",
+                          Icons.water_drop,
+                          _corRisco(p.riscoAlagamento!))),
+                          ],
+                        ),
+                        
                         const SizedBox(height: 16),
                         _buildGuiaQualidadeAr(),
 
@@ -332,6 +366,26 @@ Widget _refreshButton(ClimaProvider p) {
   }
   Color _aqiColor(int? aqi) {
     if (aqi == null) return Colors.grey;
-    return {1:Colors.green,2:Colors.yellow,3:Colors.orange,4:Colors.red,5:Colors.purple}[aqi]!;
+    return {1:Colors.green,2:const Color.fromARGB(255, 165, 154, 54),3:Colors.orange,4:Colors.red,5:Colors.purple}[aqi]!;
   }
+  Color _corRisco(double risco) {
+  if (risco < 20) return Colors.green;
+  if (risco < 50) return const Color.fromARGB(255, 165, 154, 54);
+  if (risco < 75) return Colors.orange;
+  return Colors.red;
+}
+
+  String _textoRisco(double risco) {
+    if (risco < 20) {
+      return "Sem risco";
+    } else if (risco < 50) {
+      return "Atenção";
+    } else if (risco < 75) {
+      return "Alto risco";
+    } else {
+      return "Crítico";
+    }
+  }
+
+
 }

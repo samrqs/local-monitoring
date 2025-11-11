@@ -45,8 +45,25 @@ class _ClimaScreenState extends State<ClimaScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text("Clima", style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
-        centerTitle: true,
+      centerTitle: true,
+              title: Row(
+                mainAxisSize: MainAxisSize.min, // mantém centralizado
+                children: [
+                  const Icon(
+                    Icons.cloud_outlined, // ícone de clima
+                    color: Color.fromARGB(255, 22, 134, 0),
+                    size: 32,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    "Clima",
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
+                  ),
+                ],
+              ),
       ),
       body: (!carregado || p.loading)
           ? const Center(child: CircularProgressIndicator())

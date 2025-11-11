@@ -1,7 +1,10 @@
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use
+
 import 'package:eco_sight/screens/providers/clima_provider.dart';
 import 'package:eco_sight/screens/providers/mapa_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 
@@ -26,14 +29,15 @@ class _MapaScreenState extends State<MapaScreen> {
   Future<void> _bootstrap() async {
     final pos = await LocationService.getPosition();
     final mapaProv = context.read<MapaProvider>();
+    final climaProv = context.read<ClimaProvider>();
     final center = LatLng(
       pos?.latitude ?? -23.55,
       pos?.longitude ?? -46.63,
     );
-    await mapaProv.init(center);
+    await mapaProv.init(center, climaProv);
 
     // Carrega poluição via ClimaProvider (uma vez)
-    final climaProv = context.read<ClimaProvider>();
+
     await climaProv.carregarClima(center.latitude, center.longitude);
 
     _map.move(center, 11);
@@ -51,8 +55,25 @@ class _MapaScreenState extends State<MapaScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mapa Ambiental'),
-        centerTitle: true,
+              centerTitle: true,
+              title: Row(
+                mainAxisSize: MainAxisSize.min, // mantém centralizado
+                children: [
+                  const Icon(
+                    Icons.map_outlined, // ícone de clima
+                    color: Color.fromARGB(255, 22, 134, 0),     // cor do sol ☀️
+                    size: 32,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    "Mapa Ambiental",
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
+                  ),
+                ],
+              ),
       ),
       body: Stack(
         children: [
@@ -93,40 +114,36 @@ class _MapaScreenState extends State<MapaScreen> {
                     CircleMarker(
                       point: LatLng(lat, lon),
                       useRadiusInMeter: true,
-                      radius: 12000, // 12 km
+                      radius: 8000, // 8 km
                       color: _corPM25(clima.poluicao!.pm2_5).withOpacity(0.38),
                       borderStrokeWidth: 0,
                     ),
                   ],
                 ),
 
-              // 🌊 camada: Alagamentos (polígonos)
-              if (mapa.modo == ModoMapa.alagamento && mapa.alagamentos.isNotEmpty)
-                PolygonLayer(
-                  polygons: mapa.alagamentos.map((a) {
-                    return Polygon(
-                      points: a.poligono,
-                      color: Colors.blueAccent.withOpacity(0.25),
-                      borderColor: Colors.blueAccent,
-                      borderStrokeWidth: 2,
-                      label: a.titulo,
+              if (mapa.modo == ModoMapa.alagamento && mapa.pontosAlagamento.isNotEmpty)
+                MarkerLayer(
+                  markers: mapa.pontosAlagamento.map((p) {
+                    return Marker(
+                      point: LatLng(p.lat, p.lon),
+                      width: 28,
+                      height: 28,
+                      child: Icon(
+                        Icons.water_drop,
+                        color: _corRisco(p.risco),
+                        size: 26,
+                      ),
                     );
                   }).toList(),
                 ),
 
-              // 🔥 camada: Queimadas (INPE)
-              if (mapa.modo == ModoMapa.queimadas && mapa.focos.isNotEmpty)
-                MarkerLayer(
-                  markers: mapa.focos.map((f) {
-                    return Marker(
-                      point: LatLng(f.lat, f.lon),
-                      width: 28,
-                      height: 28,
-                      child: const Icon(Icons.local_fire_department, color: Colors.red, size: 26),
-                    );
-                  }).toList(),
-                ),
             ],
+          ),
+
+          Positioned(
+            bottom: 20,
+            left: 16,
+            child: _buildLegendaCard(mapa),
           ),
 
           if (mapa.loading)
@@ -152,7 +169,7 @@ class _MapaScreenState extends State<MapaScreen> {
                 const SizedBox(height: 10),
                 FloatingActionButton.small(
                   heroTag: 'reload',
-                  onPressed: () => mapa.recarregar(),
+                  onPressed: () => mapa.recarregar(clima),
                   child: const Icon(Icons.refresh),
                 ),
                 const SizedBox(height: 10),
@@ -164,7 +181,7 @@ class _MapaScreenState extends State<MapaScreen> {
                     heroTag: 'modo_poluicao',
                     onPressed: () async {
                       setState(() => _menuAberto = false);
-                      await mapa.setModo(ModoMapa.poluicao);
+                      await mapa.setModo(ModoMapa.poluicao, clima);
                     },
                     icon: const Icon(Icons.cloud),
                     label: const Text('Poluição'),
@@ -174,20 +191,10 @@ class _MapaScreenState extends State<MapaScreen> {
                     heroTag: 'modo_alag',
                     onPressed: () async {
                       setState(() => _menuAberto = false);
-                      await mapa.setModo(ModoMapa.alagamento);
+                      await mapa.setModo(ModoMapa.alagamento, clima);
                     },
                     icon: const Icon(Icons.water),
                     label: const Text('Alagamento'),
-                  ),
-                  const SizedBox(height: 8),
-                  FloatingActionButton.extended(
-                    heroTag: 'modo_fogo',
-                    onPressed: () async {
-                      setState(() => _menuAberto = false);
-                      await mapa.setModo(ModoMapa.queimadas);
-                    },
-                    icon: const Icon(Icons.local_fire_department),
-                    label: const Text('Queimadas'),
                   ),
                   const SizedBox(height: 8),
                 ],
@@ -205,13 +212,120 @@ class _MapaScreenState extends State<MapaScreen> {
     );
   }
 
+Widget _buildLegendaCard(MapaProvider mapa) {
+  // Controlador reativo para abrir/fechar a legenda
+  final ValueNotifier<bool> abertoNotifier = ValueNotifier(false);
+
+  return ValueListenableBuilder<bool>(
+    valueListenable: abertoNotifier,
+    builder: (context, aberto, _) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Card visível se aberto = true
+          if (aberto)
+            Container(
+              padding: const EdgeInsets.all(12),
+              width: 220,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: const [
+                  BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(2, 3)),
+                ],
+              ),
+              child: mapa.modo == ModoMapa.poluicao
+                  ? _legendaPoluicao()
+                  : _legendaAlagamento(),
+            ),
+
+          const SizedBox(height: 6),
+
+          // Botão de info
+          FloatingActionButton.small(
+            heroTag: 'info',
+            backgroundColor: Colors.white,
+            onPressed: () => abertoNotifier.value = !abertoNotifier.value,
+            child: Icon(
+              aberto ? Icons.close : Icons.info_outline,
+              color: Colors.blueGrey.shade700,
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+  Widget _legendaPoluicao() {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text("Qualidade do Ar", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+      const SizedBox(height: 8),
+      _linhaLegenda(Colors.green, "Excelente"),
+      _linhaLegenda(Colors.yellow, "Moderada"),
+      _linhaLegenda(Colors.orange, "Ruim"),
+      _linhaLegenda(Colors.red, "Perigosa"),
+      _linhaLegenda(Colors.purple, "Tóxica"),
+    ],
+  );
+}
+
+  Widget _legendaAlagamento() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("Risco de Alagamento", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+        const SizedBox(height: 8),
+        _linhaLegenda(Colors.green, "Sem riscos"),
+        _linhaLegenda(Colors.yellow, "Atenção"),
+        _linhaLegenda(Colors.orange, "Alto risco"),
+        _linhaLegenda(Colors.red, "Crítico"),
+      ],
+    );
+  }
+
+  Widget _linhaLegenda(Color cor, String texto) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          Container(
+            width: 14,
+            height: 14,
+            decoration: BoxDecoration(
+              color: cor,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(texto, style: const TextStyle(fontSize: 13)),
+        ],
+      ),
+    );
+  }
   // Escala PM2.5 em µg/m³ → cor
   Color _corPM25(double? pm) {
     if (pm == null) return Colors.grey;
     if (pm < 12) return Colors.green;        // Excelente
-    if (pm < 35) return Colors.yellow;       // Moderada
+    if (pm < 35) return const Color.fromARGB(255, 165, 154, 54); // Moderada
     if (pm < 55) return Colors.orange;       // Ruim
     if (pm < 150) return Colors.red;         // Perigosa
     return Colors.purple;                    // Tóxica
   }
+
+  Color _corRisco(double risco) {
+    if (risco < 20) {
+      return Colors.green.withOpacity(0.9);
+    } else if (risco < 50) {
+      return Colors.yellow.withOpacity(0.9);
+    } else if (risco < 75) {
+      return Colors.orange.withOpacity(0.9);
+    } else {
+      return Colors.red.withOpacity(0.9);
+    }
+  }
+
+
 }

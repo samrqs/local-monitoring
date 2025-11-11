@@ -1,145 +1,80 @@
-import 'dart:convert';
+import 'package:eco_sight/data/services/api_service.dart';
+import 'package:eco_sight/screens/providers/clima_provider.dart';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
-enum ModoMapa { poluicao, alagamento, queimadas }
+enum ModoMapa { poluicao, alagamento }
 
-class FocoQueimada {
+class PontoAlagamento {
   final double lat;
   final double lon;
-  final DateTime dataHora;
-  final String? estado;
+  final double risco;
 
-  FocoQueimada({
-    required this.lat,
-    required this.lon,
-    required this.dataHora,
-    this.estado,
-  });
-}
-
-class AreaAlagamento {
-  final List<LatLng> poligono;
-  final String? titulo;
-
-  AreaAlagamento({required this.poligono, this.titulo});
+  PontoAlagamento(this.lat, this.lon, this.risco);
 }
 
 class MapaProvider extends ChangeNotifier {
+  ClimaProvider climaProv = ClimaProvider();
   bool loading = false;
   ModoMapa modo = ModoMapa.poluicao;
 
   LatLng? centroAtual;
 
   // Dados das camadas
-  List<FocoQueimada> focos = [];
-  List<AreaAlagamento> alagamentos = [];
+  List<PontoAlagamento> pontosAlagamento  = [];
 
-  Future<void> init(LatLng center) async {
+  Future<void> init(LatLng center, ClimaProvider climaProv) async {
     centroAtual = center;
     notifyListeners();
-    await carregarCamadaAtual();
+    await carregarCamadaAtual(climaProv);
   }
 
-  Future<void> setModo(ModoMapa m) async {
+  Future<void> setModo(ModoMapa m, ClimaProvider climaProv) async {
     if (modo == m) return;
     modo = m;
     notifyListeners();
-    await carregarCamadaAtual();
+    await carregarCamadaAtual(climaProv);
   }
 
-  Future<void> recarregar() => carregarCamadaAtual();
+  Future<void> recarregar(ClimaProvider climaProv) => carregarCamadaAtual(climaProv);
 
-  Future<void> carregarCamadaAtual() async {
+  Future<void> carregarCamadaAtual(ClimaProvider climaProv) async {
     switch (modo) {
       case ModoMapa.poluicao:
         // Poluição usa ClimaProvider; nada a buscar aqui.
         return;
-      case ModoMapa.queimadas:
-        return carregarQueimadasBR();
       case ModoMapa.alagamento:
-        return carregarAlagamentosBR();
+        return gerarPontosAlagamento(centroAtual!.latitude, centroAtual!.longitude, climaProv);
     }
   }
 
-  /// 🔥 INPE – focos de queimadas BR, últimas 24h
-  Future<void> carregarQueimadasBR() async {
-    loading = true;
-    notifyListeners();
-    try {
-      // API pública INPE (sem chave). Dias=1 → últimas 24h.
-      final url = Uri.parse(
-        'https://queimadas.dgi.inpe.br/api/focos?pais=BR&dias=1',
-      );
-      final r = await http.get(url);
-      if (r.statusCode != 200) {
-        throw Exception('INPE error: ${r.statusCode}');
-      }
-      final data = jsonDecode(r.body);
-      if (data is List) {
-        focos = data.map<FocoQueimada>((e) {
-          final lat = (e['latitude'] as num).toDouble();
-          final lon = (e['longitude'] as num).toDouble();
-          final uf = (e['estado'] ?? '') as String?;
-          // pode vir 'datahora_gmt' ou similar; tratamos genericamente
-          final ts = (e['datahora'] ??
-                  e['datahora_gmt'] ??
-                  e['horario'] ??
-                  '') as String;
-          DateTime dt;
-          try {
-            dt = DateTime.tryParse(ts)?.toLocal() ?? DateTime.now();
-          } catch (_) {
-            dt = DateTime.now();
-          }
-          return FocoQueimada(lat: lat, lon: lon, dataHora: dt, estado: uf);
-        }).toList();
-      } else {
-        focos = [];
+  Future<void> gerarPontosAlagamento(double lat, double lon, ClimaProvider climaProv) async {
+  pontosAlagamento.clear();
+  loading = true;
+  notifyListeners();
+
+  try {
+      for (var i = -1; i <= 1; i++) {
+        for (var j = -1; j <= 1; j++) {
+          final novoLat = lat + (i * 0.01); // ~5km
+          final novoLon = lon + (j * 0.01);
+
+          // 🔹 Busca previsão detalhada (chuva, umidade, pressão, nuvens)
+          final prev = await ApiService.getPrecipitacaoProximas24h(novoLat, novoLon);
+
+          // 🔹 Calcula o risco com base no método do ClimaProvider
+          final risco = climaProv.calcularRiscoAlagamento(
+            prev['chuva'] ?? 0,
+            prev['umid']!.toInt(),
+            prev['nuvem'] ?? 0,
+            prev['press'] ?? 0,
+          );
+
+          pontosAlagamento.add(PontoAlagamento(novoLat, novoLon, risco));
+        }
       }
     } catch (e) {
-      debugPrint('Erro ao carregar focos INPE: $e');
-      focos = [];
-    } finally {
-      loading = false;
-      notifyListeners();
-    }
-  }
-
-  /// 🌊 INMET/Defesa Civil – áreas de alerta/risco de chuva/inundação (GeoJSON ou lista)
-  /// Implementação robusta dependerá do endpoint adotado; aqui deixo um fetch genérico com fallback.
-  Future<void> carregarAlagamentosBR() async {
-    loading = true;
-    notifyListeners();
-    try {
-      // EXEMPLO de fonte (ajuste para a que você adotar):
-      // final url = Uri.parse('https://seu-endpoint-geojson/avisos_inmet.geojson');
-      // final r = await http.get(url);
-      // if (r.statusCode != 200) throw Exception('Alagamentos error: ${r.statusCode}');
-      // final geo = jsonDecode(r.body);
-      // Parse GeoJSON → AreaAlagamento(poligono: [...])
-
-      // Fallback: se não tiver endpoint ainda, cria uma área exemplo perto do centro
-      if (centroAtual != null) {
-        final c = centroAtual!;
-        alagamentos = [
-          AreaAlagamento(
-            titulo: 'Área de risco (exemplo)',
-            poligono: [
-              LatLng(c.latitude + 0.06, c.longitude - 0.06),
-              LatLng(c.latitude + 0.06, c.longitude + 0.06),
-              LatLng(c.latitude - 0.06, c.longitude + 0.06),
-              LatLng(c.latitude - 0.06, c.longitude - 0.06),
-            ],
-          ),
-        ];
-      } else {
-        alagamentos = [];
-      }
-    } catch (e) {
-      debugPrint('Erro ao carregar alagamentos: $e');
-      alagamentos = [];
+      debugPrint("⚠️ Erro ao gerar pontos de alagamento: $e");
     } finally {
       loading = false;
       notifyListeners();

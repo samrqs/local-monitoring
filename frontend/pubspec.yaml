@@ -21,7 +21,7 @@ version: 1.0.0+1
 environment:
   sdk: ^3.9.2
 
-# Dependencies specify other packages that your package needs in order to work.
+# Dependencies specify other packages that your package needs in order to work.S
 # To automatically upgrade your package dependencies to the latest versions
 # consider running `flutter pub upgrade --major-versions`. Alternatively,
 # dependencies can be manually updated by changing the version numbers below to
@@ -47,6 +47,7 @@ dependencies:
   weather_icons: ^3.0.0
   geocoding: ^4.0.0
   flutter_map_heatmap: ^0.0.8
+  flutter_launcher_icons: ^0.14.4
 
 dev_dependencies:
   flutter_test:
@@ -71,6 +72,7 @@ flutter:
   uses-material-design: true
   assets:
     - .env
+    - assets/logo.png
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg
@@ -101,3 +103,9 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/logo.png"
+  adaptive_icon_background: "#ffffff"
+  adaptive_icon_foreground: "assets/logo.png"
