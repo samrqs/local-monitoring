@@ -74,10 +74,12 @@ def generate_weather_report(data: dict):
     table_data = [
         ["Temperatura (°C)", f"{data['temperature']:.1f}"],
         ["Umidade (%)", f"{data['humidity']}"],
+        ["Sensação (°C)", f"{data['feels_like']}"],
         ["Pressão (hPa)", f"{data['pressure']}"],
         ["Velocidade do Vento (m/s)", f"{data['wind_speed']}"],
-        ["Condição Climática", data["weather"]],
-        ["Qualidade do Ar (estimada)", data["air_quality_index"]],
+        ["Descrição", f"{data['description']}"],
+        ["Nascer do Sol", f"{data['sunrise']}"],
+        ["Por do Sol", f"{data['sunset']}"],
         ["Latitude", f"{data['latitude']:.3f}"],
         ["Longitude", f"{data['longitude']:.3f}"],
     ]
@@ -93,6 +95,41 @@ def generate_weather_report(data: dict):
     ]))
     elements.append(table)
     elements.append(Spacer(1, 20))
+
+    pollution = data.get("pollution")
+    if pollution:
+        elements.append(Spacer(1, 10))
+
+        elements.append(Paragraph("Qualidade do Ar", ParagraphStyle(
+            "Header",
+            fontSize=14,
+            alignment=1,
+            textColor=colors.HexColor("#004E98"),
+            spaceAfter=8,
+        )))
+
+        air_table_data = [
+            ["AQI (Índice de Qualidade do Ar)", pollution["aqi"]],
+            ["PM2.5 (µg/m³)", pollution["pm2_5"]],
+            ["PM10 (µg/m³)", pollution["pm10"]],
+            ["Ozônio (O3)", pollution["o3"]],
+            ["Dióxido de Nitrogênio (NO2)", pollution["no2"]],
+            ["Dióxido de Enxofre (SO2)", pollution["so2"]],
+            ["Monóxido de Carbono (CO)", pollution["co"]],
+        ]
+
+        air_table = Table(air_table_data, colWidths=[10 * cm, 6 * cm])
+        air_table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#004E98")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ("BACKGROUND", (0, 1), (-1, -1), colors.whitesmoke),
+        ]))
+
+        elements.append(air_table)
+        elements.append(Spacer(1, 20))
 
     footer_style = ParagraphStyle(
         "Footer",
