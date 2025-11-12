@@ -1,0 +1,324 @@
+================================================================================
+                    🌍 MANUAL DE EXECUÇÃO - ECOSIGHT
+                 Sistema de Monitoramento Ambiental Urbano
+================================================================================
+
+Este manual vai te guiar passo a passo para rodar o projeto EcoSight na sua máquina.
+
+================================================================================
+📋 O QUE VOCÊ VAI PRECISAR INSTALAR
+================================================================================
+
+BACKEND (API Python)
+--------------------
+1. Python 3.12 ou superior
+   → Baixe em: https://www.python.org/downloads/
+   → No Windows, marque "Add Python to PATH" durante a instalação
+   → Teste no terminal: python --version
+
+2. Poetry (gerenciador de pacotes Python)
+   → Abra o terminal e rode: pip install poetry
+   → Teste: poetry --version
+
+3. PostgreSQL 16 ou superior
+   → Baixe em: https://www.postgresql.org/download/
+   → Durante a instalação, escolha uma senha que você vai lembrar
+   → Anote a porta (normalmente é 5432)
+
+FRONTEND (Aplicativo Flutter)
+------------------------------
+1. JDK 17 ou superior (para Android)
+   → Baixe em: https://www.oracle.com/java/technologies/downloads/
+   → Teste: java -version
+
+2. Flutter SDK 3.9.2 ou superior
+   → Siga o guia completo: https://docs.flutter.dev/get-started/install
+   → Escolha seu sistema operacional e siga as instruções
+   → Teste: flutter --version
+
+3. Android Studio (para emuladores Android)
+   → Baixe em: https://developer.android.com/studio
+   → Instale o Android SDK 34 ou superior via SDK Manager (Android ^14)
+   → Crie um AVD (emulador) Pixel 9 Pro ou superior via AVD Manager
+   → Rode o AVD para testar
+
+Ferramentas recomendadas
+------------------------
+→ Git: https://git-scm.com/downloads
+→ VS Code: https://code.visualstudio.com/
+
+================================================================================
+🔧 PASSO 1: CONFIGURANDO O BANCO DE DADOS
+================================================================================
+
+Primeiro, vamos preparar o PostgreSQL para guardar os dados do projeto.
+
+1️⃣ Abra o terminal do PostgreSQL
+---------------------------------
+Windows:
+  - Abra o menu Iniciar
+  - Procure por "SQL Shell (psql)"
+  - Abra o programa
+  - Pressione Enter nas primeiras perguntas até pedir a senha
+  - Digite a senha que você criou na instalação
+
+Linux/Mac:
+  - Abra o terminal
+  - Digite: sudo -u postgres psql
+  - Digite sua senha se pedir
+
+2️⃣ Crie o banco de dados
+-------------------------
+Dentro do psql, digite este comando e pressione Enter:
+
+  CREATE DATABASE weather_db;
+
+Você deve ver: CREATE DATABASE
+
+Para sair do psql, digite:
+
+  \q
+
+Pronto! O banco está criado.
+
+================================================================================
+🐍 PASSO 2: CONFIGURANDO O BACKEND (API Django)
+================================================================================
+
+Agora vamos preparar a API que busca os dados meteorológicos.
+
+1️⃣ Navegue até a pasta do backend
+----------------------------------
+Abra o terminal na pasta do projeto e digite:
+
+  cd backend
+
+2️⃣ Instale as dependências Python
+----------------------------------
+Digite este comando e aguarde (pode demorar alguns minutos):
+
+  poetry shell
+  poetry install
+
+Você vai ver várias mensagens de instalação de pacotes. Quando terminar,
+deve aparecer algo como "Installing the current project: eco-sight".
+
+3️⃣ Configure as variáveis de ambiente
+--------------------------------------
+Crie um arquivo chamado ".env" dentro da pasta backend.
+
+💡 No Windows: clique com botão direito → Novo → Documento de Texto
+   Renomeie para ".env" (apague o .txt)
+
+💡 No VS Code: clique com botão direito na pasta backend → New File → .env
+
+Cole este conteúdo no arquivo (ATENÇÃO às substituições):
+
+---
+# Django
+SECRET_KEY=django-insecure-#p6yg_8(6s8s*(5@77$-b)imke6v99lmyge482r+la6v$n3#dd
+DEBUG=True
+
+# Banco de Dados PostgreSQL
+DB_NAME=weather_db
+DB_USER=postgres
+DB_PASSWORD=COLOQUE_SUA_SENHA_AQUI
+DB_HOST=localhost
+DB_PORT=5432
+
+# OpenWeather API Key
+OPENWEATHER_API_KEY=2ed3c69579f74102077da7ec7a4c0754
+---
+
+⚠️ IMPORTANTE:
+  - Troque "COLOQUE_SUA_SENHA_AQUI" pela senha do PostgreSQL
+  - A API Key do OpenWeather já está definida no arquivo acima (use a chave fornecida)
+
+Salve o arquivo!
+
+4️⃣ Prepare o banco de dados
+----------------------------
+Ainda na pasta backend, rode:
+
+  poetry run python manage.py migrate
+
+Você vai ver várias mensagens de "Applying...". Quando terminar, verá "OK".
+
+5️⃣ Inicie o servidor backend
+-----------------------------
+Agora é só rodar:
+
+  poetry run python manage.py runserver
+
+Você deve ver:
+
+  Starting development server at http://127.0.0.1:8000/
+  Quit the server with CTRL-BREAK.
+
+🎉 Backend rodando! Deixe esse terminal aberto e abra outro para o frontend.
+
+================================================================================
+📱 PASSO 3: CONFIGURANDO O FRONTEND (App Flutter)
+================================================================================
+
+Agora vamos preparar o aplicativo que você vai usar para ver os dados.
+
+1️⃣ Abra um NOVO terminal
+-------------------------
+Não feche o terminal do backend! Abra outro terminal.
+
+2️⃣ Navegue até a pasta do frontend
+-----------------------------------
+  cd frontend
+
+(Se você estava na pasta backend, volte primeiro: cd ..)
+
+3️⃣ Configure as variáveis de ambiente
+--------------------------------------
+Crie um arquivo ".env" dentro da pasta frontend.
+
+Cole este conteúdo:
+
+---
+# Se estiver rodando no navegador ou Windows, use localhost
+# API_URL=http://127.0.0.1:8000/api
+# Caso esteja rodando no emulador Android, use o IP especial
+API_URL=http://10.0.2.2:8000/api
+# Se estiver conectado com um dispositivo na rede local, use o IP da máquina
+# API_URL=http://192.168.0.105:8000/api
+API_KEY=2ed3c69579f74102077da7ec7a4c0754
+UNITS=metric
+LANG=pt_br
+---
+
+Salve o arquivo!
+
+4️⃣ Instale as dependências Flutter
+-----------------------------------
+  flutter pub get
+
+Aguarde o download. Quando terminar, deve aparecer: "Got dependencies!"
+
+5️⃣ Verifique os dispositivos disponíveis
+-----------------------------------------
+  flutter devices
+
+Você vai ver algo como:
+
+  Chrome (web) • chrome • web-javascript
+  Windows (desktop) • windows • windows-x64
+  [Nome do seu celular] (mobile) • ...
+
+Anote o "device ID" que você quer usar (ex: "chrome", "windows").
+
+6️⃣ Habilite plataformas (se necessário)
+-------------------------------------
+Se não aparecer "Chrome" ou "Windows", habilite:
+
+  Para Web:     flutter config --enable-web
+  Para Windows: flutter config --enable-windows-desktop
+
+7️⃣ Execute o aplicativo
+------------------------
+  🤖 Para rodar no Android:
+    - Abra um emulador no Android Studio OU conecte seu celular
+    - flutter run
+
+  IMPORTANTE: Se estiver rodando no emulador Android, lembre-se de verificar se o android studio está com o AVD rodando.
+
+A primeira vez pode demorar alguns minutos compilando.
+
+Quando terminar, o app vai abrir automaticamente!
+
+================================================================================
+✨ USANDO O APLICATIVO
+================================================================================
+
+Quando o app abrir:
+
+1. Ele vai pedir permissão para acessar sua localização → ACEITE
+2. Aguarde alguns segundos enquanto carrega os dados
+3. Você vai ver 3 abas na parte inferior:
+   
+   📊 Dashboard: Resumo com temperatura, qualidade do ar e risco de alagamento
+   ☁️ Clima: Detalhes meteorológicos completos
+   🗺️ Mapa: Visualização geográfica com camadas de poluição e alagamento
+
+Pronto! O app está funcionando. 🎉
+
+Para atualizar os dados, toque no ícone de 🔄 refresh no Dashboard.
+
+================================================================================
+🌐 URLS IMPORTANTES
+================================================================================
+
+Backend (API):
+  → http://localhost:8000/api/           (Endpoints da API)
+
+Frontend:
+  → O app abre automaticamente no navegador ou emulador
+
+Banco de Dados PostgreSQL:
+  → Host: localhost
+  → Porta: 5432
+  → Database: weather_db
+  → User: postgres
+  → Password: (a que você definiu)
+
+================================================================================
+🛑 COMO PARAR TUDO
+================================================================================
+
+Para parar o backend:
+  → No terminal do backend, pressione: Ctrl + C
+
+Para parar o frontend:
+  → No terminal do frontend, pressione: Ctrl + C
+  → Se o navegador/app não fechar, feche manualmente
+
+Para parar o PostgreSQL:
+  → Windows: Serviços > postgresql-x64-16 > Parar
+  → Linux: sudo service postgresql stop
+  → Mac: brew services stop postgresql
+
+================================================================================
+🔄 COMANDOS RÁPIDOS - RESUMO
+================================================================================
+
+PRIMEIRA VEZ (Setup completo):
+
+# 1. Configure o banco
+psql -U postgres
+CREATE DATABASE weather_db;
+\q
+
+# 2. Backend
+cd backend
+poetry install
+# Crie o arquivo .env aqui!
+poetry run python manage.py migrate
+poetry run python manage.py runserver
+
+# 3. Frontend (em outro terminal)
+cd frontend
+# Crie o arquivo .env aqui!
+flutter pub get
+flutter run
+
+---
+
+DAS PRÓXIMAS VEZES (já configurado):
+
+Terminal 1 (Backend):
+  cd backend
+  poetry run python manage.py runserver
+
+Terminal 2 (Frontend):
+  cd frontend
+  flutter run -d chrome
+
+---
+
+Acesse:
+  → App: Abre automaticamente no navegador
+  → API: http://localhost:8000/api/

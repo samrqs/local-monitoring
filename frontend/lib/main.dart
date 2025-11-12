@@ -8,6 +8,7 @@ import 'screens/dashboard_screen.dart';
 import 'screens/clima_screen.dart';
 import 'screens/mapa_screen.dart';
 import 'screens/providers/clima_provider.dart';
+import 'screens/providers/mapa_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,6 +38,7 @@ Future<void> main() async {
               pos?.longitude ?? -46.6333,
             ),
         ),
+        ChangeNotifierProvider(create: (_) => MapaProvider()),
       ],
       child: const EcoSightApp(),
     ),

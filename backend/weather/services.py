@@ -30,15 +30,15 @@ def get_weather_data(lat: float, lon: float):
         "latitude": lat,
         "longitude": lon,
         "city": data.get("name", "Desconhecida"),
-        "temperature": data.get("main", {}).get("temp"),
-        "feels_like": data.get("main", {}).get("feels_like"),
-        "humidity": data.get("main", {}).get("humidity"),
-        "wind_speed": data.get("wind", {}).get("speed"),
-        "pressure": data.get("main", {}).get("pressure"),
-        "description": weather.get("description"),
-        "icon": weather.get("icon"),
-        "sunrise": sunrise.strftime("%H:%M:%S"),
-        "sunset": sunset.strftime("%H:%M:%S"),
+        "temperatura": data.get("main", {}).get("temp"),
+        "sensacao": data.get("main", {}).get("feels_like"),
+        "umidade": data.get("main", {}).get("humidity"),
+        "vento": data.get("wind", {}).get("speed"),
+        "pressao": data.get("main", {}).get("pressure"),
+        "descricao": weather.get("description"),
+        "icone": weather.get("icon"),
+        "nascer_sol": sunrise.strftime("%H:%M:%S"),
+        "por_sol": sunset.strftime("%H:%M:%S"),
     }
 
 def get_air_pollution_data(lat: float, lon: float):
@@ -56,12 +56,11 @@ def get_air_pollution_data(lat: float, lon: float):
     if res.status_code != 200:
         return None
 
+    res.raise_for_status()
     data = res.json()["list"][0]
-    aqi = data["main"]["aqi"]  # índice de qualidade do ar
-    comp = data["components"]  # gases
-
+    comp = data["components"]
     return {
-        "aqi": aqi,
+        "aqi": data["main"]["aqi"],
         "pm2_5": comp.get("pm2_5", 0),
         "pm10": comp.get("pm10", 0),
         "o3": comp.get("o3", 0),
@@ -78,20 +77,21 @@ def get_air_pollution_history_data(lat: float, lon: float, start: int, end: int)
     if not settings.OPENWEATHER_API_KEY:
         raise ValueError("OPENWEATHER_API_KEY não configurada no .env")
 
-    start_ts = date_to_timestamp(start)
-    end_ts = date_to_timestamp(end)
+    start_ts = datetime.fromtimestamp(start)
+    end_ts = datetime.fromtimestamp(end)
 
     url = "https://api.openweathermap.org/data/2.5/air_pollution/history"
     params = {
         "lat": lat,
         "lon": lon,
-        "start": start_ts,
-        "end": end_ts,
+        "start": start,
+        "end": end,
         "appid": settings.OPENWEATHER_API_KEY,
     }
 
     try:
         response = requests.get(url, params=params, timeout=10)
+        
         response.raise_for_status()
         raw = response.json()
 
@@ -100,7 +100,7 @@ def get_air_pollution_history_data(lat: float, lon: float, start: int, end: int)
             components = item.get("components", {})
 
             history.append({
-                "timestamp": item.get("dt"),
+                "dt": item.get("dt"),
                 "aqi": item.get("main", {}).get("aqi", 0),
                 "pm2_5": components.get("pm2_5", 0.0),
                 "pm10": components.get("pm10", 0.0),
