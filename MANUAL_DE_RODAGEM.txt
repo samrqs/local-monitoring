@@ -27,19 +27,25 @@ BACKEND (API Python)
 
 FRONTEND (Aplicativo Flutter)
 ------------------------------
-1. Flutter SDK 3.9.2 ou superior
+1. JDK 17 ou superior (para Android)
+   → Baixe em: https://www.oracle.com/java/technologies/downloads/
+   → Teste: java -version
+
+2. Flutter SDK 3.9.2 ou superior
    → Siga o guia completo: https://docs.flutter.dev/get-started/install
    → Escolha seu sistema operacional e siga as instruções
    → Teste: flutter --version
 
-2. Git (para controle de versão)
-   → Baixe em: https://git-scm.com/downloads/
-   → Teste: git --version
+3. Android Studio (para emuladores Android)
+   → Baixe em: https://developer.android.com/studio
+   → Instale o Android SDK 34 ou superior via SDK Manager (Android ^14)
+   → Crie um AVD (emulador) Pixel 9 Pro ou superior via AVD Manager
+   → Rode o AVD para testar
 
 Ferramentas recomendadas
 ------------------------
+→ Git: https://git-scm.com/downloads
 → VS Code: https://code.visualstudio.com/
-→ Android Studio: https://developer.android.com/studio (se quiser testar no Android)
 
 ================================================================================
 🔧 PASSO 1: CONFIGURANDO O BANCO DE DADOS
@@ -91,6 +97,7 @@ Abra o terminal na pasta do projeto e digite:
 ----------------------------------
 Digite este comando e aguarde (pode demorar alguns minutos):
 
+  poetry shell
   poetry install
 
 Você vai ver várias mensagens de instalação de pacotes. Quando terminar,
@@ -173,7 +180,12 @@ Crie um arquivo ".env" dentro da pasta frontend.
 Cole este conteúdo:
 
 ---
-API_URL=https://api.openweathermap.org/data/2.5
+# Se estiver rodando no navegador ou Windows, use localhost
+# API_URL=http://127.0.0.1:8000/api
+# Caso esteja rodando no emulador Android, use o IP especial
+API_URL=http://10.0.2.2:8000/api
+# Se estiver conectado com um dispositivo na rede local, use o IP da máquina
+# API_URL=http://192.168.0.105:8000/api
 API_KEY=2ed3c69579f74102077da7ec7a4c0754
 UNITS=metric
 LANG=pt_br
@@ -208,17 +220,11 @@ Se não aparecer "Chrome" ou "Windows", habilite:
 
 7️⃣ Execute o aplicativo
 ------------------------
-Escolha uma das opções:
-
-  🌐 Para rodar no navegador (mais fácil):
-    flutter run -d chrome
-
-  🪟 Para rodar no Windows:
-    flutter run -d windows
-
   🤖 Para rodar no Android:
     - Abra um emulador no Android Studio OU conecte seu celular
     - flutter run
+
+  IMPORTANTE: Se estiver rodando no emulador Android, lembre-se de verificar se o android studio está com o AVD rodando.
 
 A primeira vez pode demorar alguns minutos compilando.
 
@@ -297,7 +303,7 @@ poetry run python manage.py runserver
 cd frontend
 # Crie o arquivo .env aqui!
 flutter pub get
-flutter run -d chrome
+flutter run
 
 ---
 
