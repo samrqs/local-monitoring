@@ -64,7 +64,7 @@ def generate_weather_report(data: dict):
     elements.append(Paragraph("Relatório Ambiental Urbano", title_style))
     elements.append(Paragraph(f"Cidade: {city}", subtitle_style))
 
-    temp_data = simulate_temperature_data(data["temperature"], tz)
+    temp_data = simulate_temperature_data(data["temperatura"], tz)
     chart_img = generate_temperature_chart(temp_data)
     chart_image = Image(chart_img, width=15*cm, height=6*cm)
     chart_image.hAlign = "CENTER"
@@ -72,14 +72,14 @@ def generate_weather_report(data: dict):
     elements.append(Spacer(1, 20))
 
     table_data = [
-        ["Temperatura (°C)", f"{data['temperature']:.1f}"],
-        ["Umidade (%)", f"{data['humidity']}"],
-        ["Sensação (°C)", f"{data['feels_like']}"],
-        ["Pressão (hPa)", f"{data['pressure']}"],
-        ["Velocidade do Vento (m/s)", f"{data['wind_speed']}"],
-        ["Descrição", f"{data['description']}"],
-        ["Nascer do Sol", f"{data['sunrise']}"],
-        ["Por do Sol", f"{data['sunset']}"],
+        ["Temperatura (°C)", f"{data['temperatura']:.1f}"],
+        ["Umidade (%)", f"{data['umidade']}"],
+        ["Sensação (°C)", f"{data['sensacao']}"],
+        ["Pressão (hPa)", f"{data['pressao']}"],
+        ["Velocidade do Vento (m/s)", f"{data['vento']}"],
+        ["Descrição", f"{data['descricao']}"],
+        ["Nascer do Sol", f"{data['nascer_sol']}"],
+        ["Por do Sol", f"{data['por_sol']}"],
         ["Latitude", f"{data['latitude']:.3f}"],
         ["Longitude", f"{data['longitude']:.3f}"],
     ]

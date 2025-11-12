@@ -48,6 +48,7 @@ dependencies:
   geocoding: ^4.0.0
   flutter_map_heatmap: ^0.0.8
   flutter_launcher_icons: ^0.14.4
+  url_launcher: ^6.3.0
 
 dev_dependencies:
   flutter_test:

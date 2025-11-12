@@ -4,11 +4,14 @@ import 'dart:convert';
 
 import 'package:eco_sight/screens/providers/clima_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:weather_icons/weather_icons.dart';
 import '../../data/services/location_service.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 
 class ClimaScreen extends StatefulWidget {
   const ClimaScreen({super.key});
@@ -227,46 +230,57 @@ class _ClimaScreenState extends State<ClimaScreen> {
 );
 
 
-  Future<void> _baixarRelatorio(ClimaProvider p) async {
+Future<void> _baixarRelatorio(ClimaProvider p) async {
   try {
-    final clima = p.clima;
-    if (clima == null) {
+    final lat = p.ultimaLat;
+    final lon = p.ultimaLon;
+
+    if (lat == null || lon == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Não há dados meteorológicos para exportar.")),
+        const SnackBar(content: Text("Não foi possível obter a localização atual.")),
       );
       return;
     }
 
-    final body = {
-      "local": p.nomeCidade ?? "Desconhecido",
-      "temperatura": clima.temperatura,
-      "umidade": clima.umidade,
-      "pressao": clima.pressao,
-      "vento": clima.vento,
-      "descricao": clima.descricao,
-      "dataHora": DateTime.now().toIso8601String(),
-    };
-
-    // 🔹 Substitua pela URL da sua API real
-    final url = Uri.parse("https://suaapi.com/api/relatorios/tempo");
-
+    final url = Uri.parse("${dotenv.env['API_URL']}/report/weather");
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
-      body: jsonEncode(body),
+      body: jsonEncode({"lat": p.ultimaLat, "lon": p.ultimaLon}),
     );
 
     if (response.statusCode == 200) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("✅ Relatório enviado com sucesso!")),
-      );
+      final data = jsonDecode(response.body);
+      if (data["status"] == "ok") {
+        final reportUrl = data["download_url"];
+        if (reportUrl != null){
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+                content: Text("📄 Relatório gerado para ${data["city"]}!"),
+                action: SnackBarAction(
+                  label: "Baixar",
+                  onPressed: () async {
+                    final uri = Uri.parse(reportUrl);
+                    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+                      throw Exception('Não foi possível abrir o PDF');
+                    }
+                  },
+                ),
+              ),
+        );
+        } else {
+        throw Exception("Erro HTTP ${response.statusCode}: ${response.body}");
+      }
+      } else {
+        throw Exception(data["error"] ?? "Erro desconhecido ao gerar relatório.");
+      }
     } else {
-      throw Exception("Erro ${response.statusCode}");
+      throw Exception("Erro HTTP ${response.statusCode}: ${response.body}");
     }
   } catch (e) {
-    debugPrint("Erro ao enviar relatório: $e");
+    debugPrint("Erro ao gerar relatório: $e");
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("❌ Falha ao enviar relatório: $e")),
+      SnackBar(content: Text("❌ Falha ao gerar relatório: $e")),
     );
   }
 }
