@@ -1,22 +1,26 @@
-import os
 import io
+import os
 import random
-import pytz
-
-import matplotlib.pyplot as plt
-
 from datetime import datetime, timedelta
 
+import matplotlib.pyplot as plt
+import pytz
+from django.conf import settings
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+from reportlab.platypus import (
+    Image,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
+)
 
-from django.conf import settings
 
 def generate_weather_report(data: dict):
-
     """Gera um PDF estilizado de relatório meteorológico."""
 
     city = data.get("city", "Desconhecida")
@@ -41,7 +45,7 @@ def generate_weather_report(data: dict):
 
     logo_path = os.path.join(settings.BASE_DIR, "data/assets/logo.png")
     if os.path.exists(logo_path):
-        logo = Image(logo_path, width=8*cm, height=8*cm)
+        logo = Image(logo_path, width=8 * cm, height=8 * cm)
         logo.hAlign = "CENTER"
         elements.append(logo)
     elements.append(Spacer(1, 8))
@@ -62,11 +66,11 @@ def generate_weather_report(data: dict):
     )
 
     elements.append(Paragraph("Relatório Ambiental Urbano", title_style))
-    elements.append(Paragraph(f"Cidade: {city}", subtitle_style))
+    elements.append(Paragraph(f"Bairro: {city}", subtitle_style))
 
     temp_data = simulate_temperature_data(data["temperatura"], tz)
     chart_img = generate_temperature_chart(temp_data)
-    chart_image = Image(chart_img, width=15*cm, height=6*cm)
+    chart_image = Image(chart_img, width=15 * cm, height=6 * cm)
     chart_image.hAlign = "CENTER"
     elements.append(chart_image)
     elements.append(Spacer(1, 20))
@@ -84,15 +88,19 @@ def generate_weather_report(data: dict):
         ["Longitude", f"{data['longitude']:.3f}"],
     ]
 
-    table = Table(table_data, colWidths=[8*cm, 8*cm])
-    table.setStyle(TableStyle([
-        ("BACKGROUND", (0,0), (-1,0), colors.HexColor("#004E98")),
-        ("TEXTCOLOR", (0,0), (-1,0), colors.white),
-        ("FONTNAME", (0,0), (-1,0), "Helvetica-Bold"),
-        ("ALIGN", (0,0), (-1,-1), "CENTER"),
-        ("GRID", (0,0), (-1,-1), 0.5, colors.grey),
-        ("BACKGROUND", (0,1), (-1,-1), colors.whitesmoke),
-    ]))
+    table = Table(table_data, colWidths=[8 * cm, 8 * cm])
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#004E98")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                ("BACKGROUND", (0, 1), (-1, -1), colors.whitesmoke),
+            ]
+        )
+    )
     elements.append(table)
     elements.append(Spacer(1, 20))
 
@@ -100,13 +108,18 @@ def generate_weather_report(data: dict):
     if pollution:
         elements.append(Spacer(1, 10))
 
-        elements.append(Paragraph("Qualidade do Ar", ParagraphStyle(
-            "Header",
-            fontSize=14,
-            alignment=1,
-            textColor=colors.HexColor("#004E98"),
-            spaceAfter=8,
-        )))
+        elements.append(
+            Paragraph(
+                "Qualidade do Ar",
+                ParagraphStyle(
+                    "Header",
+                    fontSize=14,
+                    alignment=1,
+                    textColor=colors.HexColor("#004E98"),
+                    spaceAfter=8,
+                ),
+            )
+        )
 
         air_table_data = [
             ["AQI (Índice de Qualidade do Ar)", pollution["aqi"]],
@@ -119,14 +132,18 @@ def generate_weather_report(data: dict):
         ]
 
         air_table = Table(air_table_data, colWidths=[10 * cm, 6 * cm])
-        air_table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#004E98")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-            ("BACKGROUND", (0, 1), (-1, -1), colors.whitesmoke),
-        ]))
+        air_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#004E98")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                    ("BACKGROUND", (0, 1), (-1, -1), colors.whitesmoke),
+                ]
+            )
+        )
 
         elements.append(air_table)
         elements.append(Spacer(1, 20))
@@ -137,18 +154,20 @@ def generate_weather_report(data: dict):
         alignment=1,
         textColor=colors.grey,
     )
-    elements.append(Paragraph(f"Gerado em: {timestamp_display} (horário de Brasília)", footer_style))
+    elements.append(
+        Paragraph(f"Gerado em: {timestamp_display} (horário de Brasília)", footer_style)
+    )
 
     doc.build(elements)
     return filepath
 
-def simulate_temperature_data(current_temp: float, tz):
 
+def simulate_temperature_data(current_temp: float, tz):
     """Gera dados simulados de temperatura nas últimas 24h com horário local."""
 
     base_time = datetime.utcnow().astimezone(tz)
     return [
-        (base_time - timedelta(hours=i), current_temp + random.uniform(-3,3))
+        (base_time - timedelta(hours=i), current_temp + random.uniform(-3, 3))
         for i in reversed(range(24))
     ]
 
@@ -158,7 +177,7 @@ def generate_temperature_chart(data_points):
     times = [t.strftime("%Hh") for t, _ in data_points]
     temps = [v for _, v in data_points]
 
-    plt.figure(figsize=(6,2.5))
+    plt.figure(figsize=(6, 2.5))
     plt.plot(times, temps, marker="o", linewidth=2, color="#004E98")
     plt.title("Variação de Temperatura (últimas 24h)", fontsize=10)
     plt.xlabel("Hora")
